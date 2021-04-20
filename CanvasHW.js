@@ -5,13 +5,12 @@ var canvas;
 var context;
 
 // constants
-var TIME_INTERVAL = 25; // screen refresh interval in milliseconds
+const TIME_INTERVAL = 25; // screen refresh interval in milliseconds
+const PLANET_TYPES = ["earth.png", "jupiter.png", "mars.png", "mercury.png", "saturn.png", "uranus.png", "venus.png"];
 
 // variables
-var intervalTimer; // holds interval timer
-var timerCount; // number of times the timer fired since the last second
-var timeLeft; // the amount of time left in seconds
-var timeElapsed; // the number of seconds elapsed
+var intervalTimer;
+var timeElapsed;
 
 var stars; // array of star objects
 var planets; // array of planet objects
@@ -35,21 +34,27 @@ function init()
     star = new Array();
     planets = new Array();
     rocket = new Object();
+    rocket.img = new Image();
+    rocket.img.src = "rocket.png";
+    rocket.x = 50;
+    rocket.y = 50;
 
-    intervalTimer = window.setInterval(update, TIME_INTERVAL);
+    rocket.img.onload = function()
+    {
+        context.drawImage(rocket.img, rocket.x, rocket.y);
+    };
 
-    x = 100;
-    y = 100;
-    r = 100;
+    image = new Image();
+    image.src = PLANET_TYPES[type];
+    image.onload = function() { context.drawImage(image, x, y, r, r); };
 
-    for( i = 0; i < colorsLength; i++ ) {
-        var color = colors[ i ];
-        gradient.addColorStop( i / colorsLength, color );
-        gradient.addColorStop( ( i + 1 ) / colorsLength, color );
-      }
+    //drawPlanet(300, 300, 300, 2);
+    drawStar(10, 10, 10);
+
+    //intervalTimer = window.setInterval(update, TIME_INTERVAL);
 }
 
-function update()
+/*function update()
 {
     var backgroundUpdate = TIME_INTERVAL / 1000.0 * backgroundVel;
     for (var i = 0; i < background.length; i++)
@@ -72,7 +77,7 @@ function update()
     var rocketUpdate = TIME_INTERVAL / 1000.0 * rocketAngVel;
     rocket.ang += rocketUpdate;
 
-    timerCount++;
+    //timeElapsed++;
 
     draw();
 }
@@ -100,71 +105,47 @@ function draw()
             i--;
         }
         drawPlanet(planets[i]);
-    }
+    }*/
 
     // possibly add stars and/or planets to arrays for next time step
-    var newStar = newObject();
+    /*var newStar = newObject();
     newStar.y = 0;
     stars += newStar;
 
     // draw the rocket
+
     drawRocket();
 }
 
 function drawPlanet(x, y, r, type)
 {
-    // draw one of nine random planets or the sun
-    
-    // mars
-    base = "#e01f36"
-    spots = "#c20a20"
-    drawCircle(x, y, r, base)
-    drawCircle(x - (r * 0.5), y - (r * 0.3), r * 0.125, spots)
-    drawCircle(x + (r * 0.5), y - (r * 0.6), r * 0.15, spots)
-    drawCircle(x - (r * 0.7), y + (r * 0.2), r * 0.25, spots)
-    drawCircle(x + (r * 0.3), y + (r * 0.7), r * 0.1, spots)
-    drawCircle(x + (r * 0.4), y + (r * 0.5), r * 0.2, spots)
-    drawCircle(x - (r * 0.3), y + (r * 0.15), r * 0.115, spots)
-    drawCircle(x + (r * 0.6), y - (r * 0.35), r * 0.115, spots)
-
-    // mercury
-    base = "#94918d"
-    spots = "#b8b6b4"
-    drawCircle(x, y, r, base)
-    drawCircle(x - (r * 0.3), y - (r * 0.6), r * 0.15, spots)
-    drawCircle(x + (r * 0.2), y - (r * 0.3), r * 0.18, spots)
-    drawCircle(x - (r * 0.6), y + (r * 0.5), r * 0.125, spots)
-    drawCircle(x + (r * 0.4), y - (r * 0.4), r * 0.16, spots)
-    drawCircle(x + (r * 0.5), y + (r * 0.2), r * 0.23, spots)
-    drawCircle(x - (r * 0.2), y + (r * 0.5), r * 0.15, spots)
-    drawCircle(x + (r * 0.7), y - (r * 0.4), r * 0.115, spots)
-
-    // uranus
-    base = "#99d7e8"
-    drawCircle(x, y, r, base)
-
-
-}
+    // draw one of nine random planets
+    image = new Image();
+    image.src = PLANET_TYPES[type];
+    image.onload = function()
+    {
+        context.drawImage(image, x, y, r, r);
+    };
+}*/
 
 function drawStar(x, y, r)
 {
     var gradient = context.createRadialGradient(x, y, 0, x, y, 10);
     gradient.addColorStop(0, "white");
     gradient.addColorStop(1, "transparent");
-    drawCircle(x, y, r, gradient)
-}
-
-function drawCircle(x, y, r, color)
-{
     context.beginPath();
     context.arc(x, y, r, 0, Math.PI * 2);
-    context.fillStyle = color;
+    context.fillStyle = gradient;
     context.fill();
 }
 
-function drawRocket()
+/*function drawRocket()
 {
     // draw rocket rotated to rocket.ang
-}
+    rocket.img.onload = function()
+    {
+        context.drawImage(rocket.img, rocket.x, rocket.y);
+    };
+}*/
 
 window.addEventListener("load", init, false);
