@@ -1,127 +1,146 @@
-// Jordyn Marlow
+var canvas;
+var gl;
 
-// Vertex shader program
-var VSHADER_SOURCE =
-    'attribute vec4 a_Position;\n' +
-    'void main() {\n' +
-    '  gl_Position = a_Position;\n' +
-    '  gl_PointSize = 10.0;\n' +
-    '}\n';
+var maxNumVertices = 6000;
+var index = 0;
+var first = true;
 
-// Fragment shader program
-var FSHADER_SOURCE =
-    'void main() {\n' +
-    '  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n' +
-    '}\n';
+var t1, t2;
 
-function main() {
-    // Retrieve <canvas> element
-    var canvas = document.getElementById('webgl');
+var cIndex = 0;
+var isPreview = false;
 
-    // Get the rendering context for WebGL
-    /*var gl = getWebGLContext(canvas);
-    if (!gl)
+var colors = [
+    vec4( 0.0, 0.0, 0.0, 1.0 ),  // black
+    vec4( 1.0, 0.0, 0.0, 1.0 ),  // red
+    vec4( 1.0, 1.0, 0.0, 1.0 ),  // yellow
+    vec4( 0.0, 1.0, 0.0, 1.0 ),  // green
+    vec4( 0.0, 0.0, 1.0, 1.0 ),  // blue
+    vec4( 1.0, 0.0, 1.0, 1.0 ),  // magenta
+    vec4( 0.0, 1.0, 1.0, 1.0 )   // cyan
+];
+
+
+window.onload = function init()
+{
+    canvas = document.getElementById( "gl-canvas" );
+    
+    gl = WebGLUtils.setupWebGL( canvas );
+    if ( !gl ) { alert( "WebGL isn't available" ); }
+    
+    gl.viewport( 0, 0, canvas.width, canvas.height );
+    gl.clearColor( 0.8, 0.8, 0.8, 1.0 );
+    gl.clear( gl.COLOR_BUFFER_BIT );
+
+    //  Load shaders and initialize attribute buffers
+    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
+    
+    var vBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 8*maxNumVertices, gl.STATIC_DRAW);
+    
+    var vPosition = gl.getAttribLocation( program, "vPosition");
+    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
+    
+    var cBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 16*maxNumVertices, gl.STATIC_DRAW );
+    
+    var vColor = gl.getAttribLocation( program, "vColor");
+    gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vColor);
+    
+    var m = document.getElementById("colormenu");
+    
+    m.addEventListener("click", function() { cIndex = m.selectedIndex; });
+
+    canvas.addEventListener("mousedown", function()
     {
-        console.log('Failed to get the rendering context for WebGL');
-        return;
-    }
-
-    // Specify the color for clearing <canvas>
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // Initialize shaders
-    if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE))
-    {
-        console.log('Failed to intialize shaders.');
-        return;
-    }
-
-    // // Get the storage location of a_Position
-    var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-    if (a_Position < 0)
-    {
-        console.log('Failed to get the storage location of a_Position');
-        return;
-    }
-
-    // Write the positions of vertices to a vertex shader
-    var n = initVertexBuffers(gl);
-    if (n < 0)
-    {
-        console.log('Failed to set the positions of the vertices');
-        return;
-    }
-
-    // Register function (event handler) to be called on a mouse press
-    canvas.onmousedown = function(ev){ click(ev, gl, canvas, a_Position); };*/
-}
-
-var g_points = []; // The array for the position of a mouse press
-function click(ev, gl, canvas, a_Position) {
-    var x = ev.clientX; // x coordinate of a mouse pointer
-    var y = ev.clientY; // y coordinate of a mouse pointer
-    var rect = ev.target.getBoundingClientRect() ;
-
-    x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-    y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
-    // Store the coordinates to g_points array
-    g_points.push(x); g_points.push(y);
-
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    var len = g_points.length;
-    for(var i = 0; i < len; i += 2)
-    {
-        // Pass the position of a point to a_Position variable
-        gl.vertexAttrib3f(a_Position, g_points[i], g_points[i+1], 0.0);
-
-        // Draw
-        gl.drawArrays(gl.POINTS, 0, 1);
-
-        var n = initVertexBuffers(gl);
-        if (n < 0)
+        // left click
+        if(event.button == 0)
         {
-            console.log('Failed to set the positions of the vertices');
-            return;
-        }
+            console.log('add point to polygon');
+            gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer);
+            if(first)
+            {
+                first = false;
+                gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer)
+                t1 = vec2(2*event.clientX/canvas.width-1, 
+                    2*(canvas.height-event.clientY)/canvas.height-1);
+            }
+            else
+            {
+                index -= 2;
+                isPreview = false;
+                gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer)
+                t2 = vec2(2*event.clientX/canvas.width-1, 
+                    2*(canvas.height-event.clientY)/canvas.height-1);
 
-        // Draw the rectangle
-        gl.drawArrays(gl.LINE_STRIP, 0, n);
-    }
+                gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, flatten(t1));
+                gl.bufferSubData(gl.ARRAY_BUFFER, 8*(index+1), flatten(t2));
+                gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
+                
+                t = vec4(colors[cIndex]);
+
+                gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index), flatten(t));
+                gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index+1), flatten(t));
+                t1 = t2;
+            }
+            index += 4;
+        }
+        // right click
+        else if(event.button == 2)
+        {
+            stopPoly();
+        }
+    } );
+  
+    //if a line is being drawn draw the preview
+    canvas.addEventListener("mousemove", function()
+    {
+        if(!isPreview)
+        {
+            isPreview = true;
+            index +=2;
+        }  
+
+        if(!first)
+        {
+            index -=2;
+            gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer);
+            t2 = vec2(2*event.clientX/canvas.width-1, 
+            2*(canvas.height-event.clientY)/canvas.height-1);
+
+            gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, flatten(t1));
+            gl.bufferSubData(gl.ARRAY_BUFFER, 8*(index+1), flatten(t2));
+            gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
+            
+            t = vec4(colors[cIndex]);
+
+            gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index), flatten(t));
+            gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index+1), flatten(t));
+            index += 2;
+        }
+    } );
+    render();
 }
 
-function initVertexBuffers(gl) {
-    var vertices = g_points;
-    var n = 3; // The number of vertices
+function stopPoly()
+{
+    first = true;
+    index += 4;
+    console.log('end polygon');
+}
 
-    // Create a buffer object
-    var vertexBuffer = gl.createBuffer();
-    if (!vertexBuffer)
+function render()
+{
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    for(var i = 0; i < index; i += 4)
     {
-        console.log('Failed to create the buffer object');
-        return -1;
+        gl.drawArrays(gl.LINE_STRIP, i, 2);
     }
+    window.requestAnimFrame(render);
 
-    // Bind the buffer object to target
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    // Write date into the buffer object
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-    if (a_Position < 0)
-    {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
-    }
-    // Assign the buffer object to a_Position variable
-    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
-
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(a_Position);
-
-    return n;
 }
