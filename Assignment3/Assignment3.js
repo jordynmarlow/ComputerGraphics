@@ -38,28 +38,7 @@ window.onload = function init()
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
     gl.clear( gl.COLOR_BUFFER_BIT );
-    
-    var m = document.getElementById("mymenu");
 
-    // draw ellipse
-    var pi = 3.14159;
-    var x = 2*pi/100;
-    var y = 2*pi/100;
-    var r = 0.05;
-
-    points = [];
-    
-    var center = vec2(0.4, 0.8); 
-   
-    points.push(center);
-    for (i = 0; i <= 100; i++){
-        points.push(center + vec2(
-            r*Math.cos(i * 2 * Math.PI / 200),
-            r*Math.sin(i * 2 * Math.PI / 200) 
-        ));
-    }
-
-    gl.drawArrays(gl.TRIANGLE_FAN, points, vertexCount);
 
     // create shaders for squares
     program = initShaders( gl, "vertex-shader", "fragment-shader" );
@@ -81,57 +60,131 @@ window.onload = function init()
     gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vColor);
 
-    var x = 250;
-    var y = 350;
-    for (i = 120; i > 0; i -= 20)
+
+    // ellipse
+    var a = 50;
+    var b = 30;
+
+    var center_x = 100;
+    var center_y = 100;
+    addPoint(center_x, center_y, colors[2]);
+
+    for (i = 0; i <= 90; i++)
     {
-        cIndex = (i / 20) % 2;
-        drawRectangle(x - i, y - i, x + i, y + i);
+        addPoint(center_x + a*Math.cos(i * Math.PI / 45),
+                center_y + b*Math.sin(i * Math.PI / 45),
+                colors[2]);
+        addPoint(center_x, center_y, colors[2]);
     }
 
+    // "invisible" points
+    addPoint(center_x + a*Math.cos(4 * Math.PI),
+            center_y + b*Math.sin(4 * Math.PI),
+            colors[0]);
+    addPoint(center_x + a*Math.cos(4 * Math.PI),
+            center_y + b*Math.sin(4 * Math.PI),
+            colors[0]);
+
+
+    // triangle
+    addPoint(195, 150, colors[1]);
+    addPoint(195, 150, colors[4]);
+    addPoint(305, 150, colors[5]);
+    addPoint(250, 50, colors[2]);
+    addPoint(250, 50, colors[1]);
     
+
+    // circle
+    var r = 50;
+
+    center_x = 400;
+    center_y = 100;
+
+    // "invisible" point
+    addPoint(center_x, center_y, colors[0]);
+
+    addPoint(center_x, center_y, colors[4]);
+
+    for (i = 0; i <= 90; i++)
+    {
+        addPoint(center_x + r*Math.cos((i + 90) * Math.PI / 45),
+                center_y + r*Math.sin((i + 90) * Math.PI / 45),
+                colors[2]);
+        addPoint(center_x, center_y, colors[2]);
+    }
+
+    addPoint(center_x + r*Math.cos(2.5 * Math.PI),
+            center_y + r*Math.sin(2.5 * Math.PI),
+            colors[2]);
+    addPoint(center_x + r*Math.cos(2.5 * Math.PI),
+            center_y + r*Math.sin(2.5 * Math.PI),
+            colors[2]);
+
+
+    addPoint(center_x + r*Math.cos(2.5 * Math.PI),
+            center_y + r*Math.sin(2.5 * Math.PI),
+            colors[1]);
+    addPoint(center_x + r*Math.cos(2.5 * Math.PI),
+            center_y + r*Math.sin(2.5 * Math.PI),
+            colors[1]);
+
+
+    // squares
+    var x = 250;
+    var y = 350;
+    var nextColor = 0;
+    var color = 1;
+    var temp;
+    for (i = 120; i > 0; i -= 20)
+    {
+        temp = nextColor;
+        nextColor = color;
+        color = temp;
+        addSquare(x - i, y - i, x + i, y + i, colors[color], colors[nextColor]);
+    }
+
 
     render();
 }
 
-function drawRectangle(x1, y1, x2, y2)
+function addPoint(x, y, color)
 {
     gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer);
+    var t = vec2(2*x/canvas.width-1, 
+            2*(canvas.height-y)/canvas.height-1);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, flatten(t));
 
-    // first vertex
-    gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer)
-    t1 = vec2(2*x1/canvas.width-1, 
-        2*(canvas.height-y1)/canvas.height-1);
-    
-    // second vertex
-    t2 = vec2(2*x2/canvas.width-1, 
-    2*(canvas.height-y2)/canvas.height-1);
-    t3 = vec2(t1[0], t2[1]);
-    t4 = vec2(t2[0], t1[1]);
-
-    gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, flatten(t1));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 8*(index+1), flatten(t3));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 8*(index+2), flatten(t2));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 8*(index+3), flatten(t4));
     gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
-    
-    t = vec4(colors[cIndex]);
-
-    gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index), flatten(t));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index+1), flatten(t));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index+2), flatten(t));
-    gl.bufferSubData(gl.ARRAY_BUFFER, 16*(index+3), flatten(t));
-    
-    index += 4;
+    t = vec4(color);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 16*index, flatten(t));
+    index++;
 }
+
+function addSquare(x1, y1, x2, y2, color, nextColor)
+{
+    // "invisible" first points
+    addPoint(x1, y1, nextColor);
+    addPoint(x1, y1, nextColor);
+
+    // top left point
+    addPoint(x1, y1, color);
+    // top right point
+    addPoint(x2, y1, color);
+    // bottom right point
+    addPoint(x2, y2, color);
+    // bottom left point
+    addPoint(x1, y2, color);
+    // top left point
+    addPoint(x1, y1, color);
+}
+
 
 function render()
 {
     
     gl.clear( gl.COLOR_BUFFER_BIT );
 
-    for(var i = 0; i<index; i+=4)
-        gl.drawArrays( gl.TRIANGLE_FAN, i, 4 );
+    gl.drawArrays( gl.TRIANGLE_STRIP, 0, index);
 
     window.requestAnimFrame(render);
 
